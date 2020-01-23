@@ -12,19 +12,13 @@ frame = image.frameSize;
 bitmap = zeros(frame(1),frame(2),4,'uint8');
 rgb = ones(1,4); rgb(4) = 255;
 
-% stack = logical(image.stackImageData);
-% count = image.countStack;
-
 array = image.bitmapImageArray(false);
 count = array.count;
 for h = 1:count
-%     color = SYColor([h / count,1,0.5],SYColor.ColorHSB);
-%     rgb(1:3) = color.RGBColor * 255;
     color = SYColor(8,SYColor.ColorHSB, ...
         uint8([h / count,1,0.5] * 255),nan,nan);
     rgb(1:3) = color.RGBColor;
     
-%     mask = stack(:,:,1,h);
     bitmapRep = array.objectAtIndex(h);
     mask = logical(bitmapRep.bitmap.var);
     
