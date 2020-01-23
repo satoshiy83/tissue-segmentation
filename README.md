@@ -7,7 +7,7 @@ Download files and put them in a folder with a suitable name. Go to Matlab comma
 ## Requirement
 This project requires no Matlab toolbox, but a custom framework of objective classes SYObject family which is available at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3625631.svg)](https://doi.org/10.5281/zenodo.3625631).
 
-## Usage
+## Example
 Assume that *Q* be a 3D matrix of 100 times 100 times 200 rows and columns and slices. To segment the 100 times 100 rows and columns into 6 regions based on L^1 norm between the 200D vectors, prepare a dictionary holding parameters and run region growing, label propagation, and cellular Potts model algorithms.
 
 The parameters are given in a dictionary.
@@ -53,6 +53,12 @@ stack = run_region_growing(dataMap,hint,delegate);
 data = SYData(stack);
 data.writeToFile('result.rg.mat');
 ```
+You can later read the data in a file written by SYData instanc with an SYData method *initWithContentsOfFile*().
+```
+data = SYData;
+data.initWithContentsOfFile('result.rg.mat');
+stack = data.var;
+```
 
 Integrate the 50 trials of region growing　by *run_cm_thresholding_lp*(), and save the result into *result.lp.mat* and *result.lp.png*.
 ```
@@ -62,4 +68,74 @@ data.writeToFile(result.lp.mat');
 image = regiList2image(partition,dataMap,[100,100]);
 image = ss_convert_stack_to_hue(image);
 image.writeToFile('result.lp.png',false);
+```
+
+To smooth boundaries, first screen paramteres for the cellular Potts model by *run_CPM_fitting*(), and save the parameters to *hint.mat* and *hint.txt*.
+```
+delegate = CPMDelegate;
+run_CPM_fitting(partition,dataMap,hint,delegate);
+hint = delegate.hint;
+data = hint.data;
+data.writeToFile('hint.mat');
+txt = hint.description;
+fid = fopen('hint.txt','w');
+fprintf(fid,txt);
+fclose(fid);
+```
+You can later retrieve the parameter dictionary from the data.
+```
+data = SYData;
+data.initWithContentsOfFile('hint.mat');
+hint = SYDictionary;
+hint.initWithData(data);
+```
+With the screened parameters, iterate the boundary smoothing by *run_CPM_smoothing*() 50 times, integrate its results by the label propagation, and save its result to *result.cpm.mat* and *result.cpm.png*.
+```
+k = hint.objectForKey('lp_regiN');
+n = hint.objectForKey('rg_inseN');
+stack = zeros(dataMap.count,k,n);
+for i = 1:n
+  delegate = CPMDelegate;
+  qartition = run_CPM_smoothing(partition,dataMap,hint,delegate);
+  stack(:,1:size(qartition,2),i) = qartition;
+end
+partition = run_cm_thresholding_lp(stack,hint);
+data = SYData(partition);
+data.writeToFile('result.cpm.mat');
+image = regiList2image(partition,dataMap,[100,100]);
+image = ss_convert_stack_to_hue(image);
+image.writeToFile('result.cpm.png',false);
+```
+Note that the partition is used recursively inside the for loop and so the result of run_CPM_smoothing() is passed to **q**artition.
+
+To calculate silhouette values, use a supporting object TSRegionAnalyser.
+```
+regiList = SYData(partition);
+meter = TSMeter(dataMap,hint);
+analyser = TSRegionAnalyser(dataMap);
+analyser.meter = meter;
+meter.regiList = regiList;
+analyser.regiList = regiList;
+silhouette = analyser.silhouette;
+data = SYData(silhouette);
+data.writeToFile('silhouette.cpm.mat');
+image = ss_draw_silhouette_map(partition,dataMap,hint);
+image = ss_color_blue_red(image);
+image.writeToFile('silhouette.png',false);
+```
+
+To make a control, use *run_nonsense_segmentation*().
+```
+hint.setObjectForKey('ns_regiN',6);
+hint.setObjectForKey('ns_bootN',20000);
+hint.setObjectForKey('ns_insoC',1);
+hint.setObjectForKey('ns_fh_score','lf_silhouette');
+hint.setObjectForKey('hg_stepN',100);
+hint.setObjectForKey('hg_sortD','descend');
+scores = run_nonsense_segmentation(dataMap,hint);
+data = SYData(scores);
+data.writeToFile('silhouette.ctrl.mat');
+hg = histogram_scores(scores,hint);
+data = SYData(hg);
+data.writeToFile('silhouette_histogram.ctrl.mat');
 ```
