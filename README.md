@@ -8,7 +8,7 @@ Download files and put them in a folder with a suitable name. Go to Matlab comma
 This project requires no Matlab toolbox, but a custom framework of objective classes SYObject family which is available at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3625631.svg)](https://doi.org/10.5281/zenodo.3625631).
 
 ## Usage
-Assume that *Q* be a 3D matrix of 100 times 100 times 200 rows and columns and slices. To segment the 100 times 100 rows and columns based on L^1 norm between the 200D vectors, prepare a dictionary holding parameters and run region growing, label propagation, and cellular Potts model algorithms.
+Assume that *Q* be a 3D matrix of 100 times 100 times 200 rows and columns and slices. To segment the 100 times 100 rows and columns into 6 regions based on L^1 norm between the 200D vectors, prepare a dictionary holding parameters and run region growing, label propagation, and cellular Potts model algorithms.
 
 The parameters are given in a dictionary.
 ```
@@ -40,3 +40,26 @@ hint.setObjectForKey('cpm_coefficients',[0.001,10,1]);
 hint.setObjectForKey('cpm_temperature',1);
 ```
 For each paramter, look up comments inside functions.
+
+Convert the 3D matrix to a model object.
+```
+dataMap = TSDataMap(Q,hint);
+```
+
+Divide dataMap 50 times by *run_region_growing*(), and save the result into file named *result.rg.mat*.
+```
+delegate = TSRegionGrowingDelegate;
+stack = run_region_growing(dataMap,hint,delegate);
+data = SYData(stack);
+data.writeToFile('result.rg.mat');
+```
+
+Integrate the 50 trials of region growing　by *run_cm_thresholding_lp*(), and save the result into *result.lp.mat* and *result.lp.png*.
+```
+partition = run_cm_thresholding_lp(stack,hint);
+data = SYData(partition);
+data.writeToFile(result.lp.mat');
+image = regiList2image(partition,dataMap,[100,100]);
+image = ss_convert_stack_to_hue(image);
+image.writeToFile('result.lp.png',false);
+```
