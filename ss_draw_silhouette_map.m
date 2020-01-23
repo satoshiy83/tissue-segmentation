@@ -17,7 +17,6 @@ analyser.meter = meter;
 partData = SYData(partition);
 analyser.regiList = partData;
 meter.regiList = partData;
-% analyser.regiN = size(partition,2);
 
 silhList = analyser.silhouette;
 silhList = silhList';
@@ -29,7 +28,6 @@ for i = 1:length(silhList)
     bitmap(data.dataList(i,2),data.dataList(i,1)) = silhList(i);
 end
 
-% image = SYImage(bitmap);
 context = SYGraphicsContext(SYData(bitmap),frame(2),frame(1),32, ...
     SYGraphicsContext.CompositeModeOver, ...
     SYGraphicsContext.ColorSpaceGrayscale, nan, [-1,1]);
