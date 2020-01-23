@@ -1,5 +1,15 @@
+% Short script to compare two partitions.
+% Written by Satoshi Yamashita.
 
 function result = ss_adjusted_Rand_index(partition,qartition)
+% Short script to compare two partitions.
+% result = ss_adjusted_Rand_index(partition,qartition)
+% Argument partition is a matrix whose rows and columns represent data
+% points and regions.
+% Argument qartition is a matrix whose rows and columns represent data
+% points and regions.
+% Return value is (double) adjasted Rand index between partition and
+% qartition.
 
 partition = double(partition);
 qartition = double(qartition);
