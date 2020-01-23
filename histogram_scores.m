@@ -2,6 +2,22 @@
 % Written by Satoshi Yamashita.
 
 function result = histogram_scores(scorArray,hint)
+% Function to convert an array of scalar values to a histogram.
+% result = histogram_scores(scorArray,hint)
+% Argument scorArray is an array of scalar value.
+% Argument hint is an SYDictionary insctance containing parameters.
+% Return value is a matrix whose second row represents steps of value,
+% third row represents number of elements in the array that is equal to or
+% larger than a value in an upper cell and smaller than a right upper cell,
+% and first row shows range and values dividing 5%, 0.5%, 0.05%, ..., and
+% the rest of the values in scorArray.
+% 
+% Parameters:
+%   hg_stepN: number of steps.
+%   hg_sortD: sorting order to divide scorArray, either 'ascend' or
+%   'descend'.
+%   hg_range: range of histogram. If nan, the minimum and maximum values
+%   are used to make the range.
 
 % Initialization.
 steps = 100;
