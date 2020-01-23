@@ -13,10 +13,10 @@ Assume that *Q* be a 3D matrix of 100 times 100 times 200 rows and columns and s
 The parameters are given in a dictionary.
 ```
 hint = SYDictionary;
-hint.setObjectForKey('property_depth',1);
-hint.setObjectForKey('time_length',200);
+hint.setObjectForKey('property_depth',200);
+hint.setObjectForKey('time_length',1);
 hint.setObjectForKey('neigN',8);
-hint.setObjectForKey('metric_base','time_integral_absolute');
+hint.setObjectForKey('metric_base','absolute');
 hint.setObjectForKey('metric_exte','mean');
 hint.setObjectForKey('collector','centroids');
 hint.setObjectForKey('rg_regiN',6);
