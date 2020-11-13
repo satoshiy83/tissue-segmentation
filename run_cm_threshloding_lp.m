@@ -35,93 +35,92 @@ end
 
 dict = SYDictionary;
 dict.setObjectForKey('cm_threshold',0.0);
-CM = consensus_matrix(regiRec,dict);
-array = (20:2:80) / 100;
-array(2,:) = nan;
-array(3,:) = 0;
-
+CM = SYData(consensus_matrix(regiRec,dict));
+tnMatrix = SYData(zeros(3,length(20:2:80)));
+tnMatrix.var(1,:) = (20:2:80) / 100;
+tnMatrix.var(2,:) = nan;
+tnMatrix.var(3,:) = 0;
 
 %% Parameter search.
-% Initial two points.
-cm = CM .* (CM > 0.5);
-partition = run_label_propagation(cm,hint);
-n = size(partition,2);
-if n == regiN
-    result = partition;
-    return;
+% Initial three points.
+for t = [0.2,0.5,0.8]
+    cm = CM.var .* (CM.var > t);
+    partition = run_label_propagation(cm,hint);
+    n = size(partition,2);
+    index = tnMatrix.var(1,:) == t;
+    tnMatrix.var(2,index) = n;
+    tnMatrix.var(3,index) = 1;
 end
-array(2,array(1,:) == 0.5) = n;
-array(3,array(1,:) == 0.5) = 1;
-cm = CM .* (CM > 0.2);
-partition = run_label_propagation(cm,hint);
-n = size(partition,2);
-if n >= regiN
-    result = partition;
-    return;
-end
-array(2,array(1,:) == 0.2) = n;
-array(3,array(1,:) == 0.2) = 1;
-cm = CM .* (CM > 0.8);
-partition = run_label_propagation(cm,hint);
-n = size(partition,2);
-if n <= regiN
-    result = partition;
-    return;
-end
-array(2,array(1,:) == 0.8) = n;
-array(3,array(1,:) == 0.8) = 1;
 
+stack = SYData(zeros(size(partition,1),regiN,iterN,'logical'));
+counter = SYData(1);
 loop = 0;
 while loop < upthN
-    i = find(array(2,:) < regiN,1,'last');
-    j = find(array(2,:) > regiN,1,'first');
-    if i > j || i + 1 == j
-        cm = CM .* (CM > array(1,i));
-        partition = run_label_propagation(cm,hint);
-        n = size(partition,2);
-        if n == regiN
+    i = find(tnMatrix.var(2,:) == regiN,1);
+    if ~isempty(i)
+        b = lf_try_label_propagation(tnMatrix,i,CM,hint, ...
+            regiN,stack,counter,iterN);
+        if b
             break;
         end
-        array(2,i) = (array(2,i) * array(3,i) + n) / (array(3,i) + 1);
-        array(3,i) = array(3,i) + 1;
-        cm = CM .* (CM > array(1,j));
-        partition = run_label_propagation(cm,hint);
-        n = size(partition,2);
-        if n == regiN
+        continue;
+    end
+    
+    i = find(tnMatrix.var(2,:) < regiN,1,'last');
+    j = find(tnMatrix.var(2,:) > regiN,1,'first');
+    if i + 1 == j || i == j + 1
+        b = lf_try_label_propagation(tnMatrix,i,CM,hint, ...
+            regiN,stack,counter,iterN);
+        if b
             break;
         end
-        array(2,j) = (array(2,j) * array(3,j) + n) / (array(3,j) + 1);
-        array(3,j) = array(3,j) + 1;
+        b = lf_try_label_propagation(tnMatrix,j,CM,hint, ...
+            regiN,stack,counter,iterN);
+    elseif i > j
+        i = round((i + j) / 2);
+        b = lf_try_label_propagation(tnMatrix,i,CM,hint, ...
+            regiN,stack,counter,iterN);
     else
-        p = regiN - array(2,i); q = array(2,j) - regiN;
-        k = round((i * q + j * p) / (p + q));
-        cm = CM .* (CM > array(1,k));
-        partition = run_label_propagation(cm,hint);
-        n = size(partition,2);
-        if n == regiN
-            break;
-        end
-        if isnan(array(2,k))
-            array(2,k) = n;
-        else
-            array(2,k) = (array(2,k) * array(3,k) + n) / (array(3,k) + 1);
-        end
-        array(3,k) = array(3,k) + 1;
+        p = regiN - tnMatrix.var(2,i); q = tnMatrix.var(2,j) - regiN;
+        i = round((i * q + j * p) / (p + q));
+        b = lf_try_label_propagation(tnMatrix,i,CM,hint, ...
+            regiN,stack,counter,iterN);
+    end
+    if b
+        break;
     end
     
     loop = loop + 1;
 end
 
-regiRec = zeros(size(partition,1),regiN,iterN,'logical');
-for i = 1:iterN
-    partition = run_label_propagation(cm,hint);
-    partition = lf_sort_columns(partition);
-    regiRec(:,1:size(partition,2),i) = partition;
+result = stack.var;
 end
 
-result = regiRec;
+function result = ...
+    lf_try_label_propagation(tnMatrix,index,CM,hint, ...
+        regiN,stack,counter,iterN)
+cm = CM.var .* (CM.var > tnMatrix.var(1,index));
+partition = run_label_propagation(cm,hint);
+n = size(partition,2);
+if isnan(tnMatrix.var(2,index))
+    tnMatrix.var(2,index) = n;
+else
+    tnMatrix.var(2,index) = ...
+        (tnMatrix.var(2,index) * tnMatrix.var(3,index) + n) / ...
+        (tnMatrix.var(3,index) + 1);
 end
+tnMatrix.var(3,index) = tnMatrix.var(3,index) + 1;
 
+if n == regiN
+    stack.var(:,:,counter.var) = lf_sort_columns(partition);
+    counter.var = counter.var + 1;
+    if counter.var > iterN
+        result = true;
+        return;
+    end
+end
+result = false;
+end
 function result = lf_sort_columns(partition)
 array = zeros(1,size(partition,2));
 for i = 1:size(partition,2)
